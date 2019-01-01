@@ -53,7 +53,11 @@ head(data_long)
 
 There are now `r nrow(data_long)` unique observations for _all_ sites.
 
+<<<<<<< HEAD
 ### Violin/Boxplot
+=======
+### Violing/Boxplot
+>>>>>>> a60988acdba9f41701c930b8a928523f5b2f4e44
 
 ```{r violin_1}
 library(ggplot2)
