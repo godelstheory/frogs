@@ -1,6 +1,9 @@
 ---
 title: "Giant Frogs in Bend"
-author: "Corey Dow-Hygelund"
+author: 
+  - "Corey Dow-Hygelund,  Mozilla"
+  - "Tlell Wolf, Bend Science Station"
+  - "Jay Bowerman, Sunriver Nature Center"
 date: "1/1/2019"
 output: html_document
 ---
@@ -44,22 +47,95 @@ In addition, there are many `NA` (NULL) values, due to the difference in number 
 ```{r reshape}
 library(tidyr)
 data_long = na.omit(gather(data_df, site_location, size, 
-                           CR:LSA, factor_key=TRUE))
+                           CR:LSA, factor_key=FALSE))
 head(data_long)
 ```
 
 There are now `r nrow(data_long)` unique observations for _all_ sites.
 
-### Violin
-
-Let's take an initial stab at producing a Violin plot. 
+### Violin/Boxplot
 
 ```{r violin_1}
 library(ggplot2)
-p <- ggplot(data_long, aes(x=site_location, y=size)) + 
+p <- ggplot(data_long, aes(x=site_location, y=size)) +
+  labs(x = 'Location', y = 'Length (mm)') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
 #   geom_violin(scale='count')
-  geom_violin()
-p + geom_boxplot(width=0.1)
+p +  
+  geom_violin(draw_quantiles = c(0.5)) 
 
+```
+
+Standard boxplot 
+```{r boxplot}
+p + geom_boxplot()
+```
+
+
+```{r boxplot_violin}
+p +  
+  geom_violin() +
+  geom_boxplot(width=0.1)
+  
+```
+
+Producing the violin plot, where the violin area is scaled by the number of counts
+
+```{r violin_2}
+p +  
+  geom_violin(scale='count')
+
+```
+
+### Ridge
+
+Rather than representing the di
+```{r ridge_plot}
+library(ggridges)
+p <- ggplot(data_long, aes(x=size, y=site_location)) + 
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+p + geom_density_ridges()
+```
+
+Reducing the overlap between the histograms to zero.
+
+```{r}
+p + geom_density_ridges(scale = 1)
+```
+
+Adding in quantiles
+
+```{r}
+p + geom_density_ridges(scale = 1, quantile_lines=TRUE, quantiles=2)
+```
+
+#### Adding Color
+Color representing probability of distribution
+
+```{r}
+ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) + 
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail probability", direction = -1) +
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+```
+
+Color representing length 
+```{r}
+ggplot(data_long, aes(x=size, y=site_location, fill=..x..)) + 
+  geom_density_ridges_gradient() +
+  scale_fill_viridis_c(name = "Temp. [F]", option = "C")
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+  
 ```
 
