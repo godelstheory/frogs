@@ -1,0 +1,65 @@
+---
+title: "Giant Frogs in Bend"
+author: "Corey Dow-Hygelund"
+date: "1/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Loading
+
+The dataset is contained in an Excel (.xlsx) spreadsheet, located in the subdirectory `data`. The raw statistics are on the sheet _All Female raw statistics_. Lets load it in and take a quick look.
+```{r data_load, message=FALSE}
+library(readxl)
+
+file_path <- 'data/Female size statistics.2.xlsx'
+data_df <- read_excel(file_path, range=(cell_cols('B:G')), 
+                      sheet="All Females raw statistics")
+
+head(data_df)
+```
+
+## Summary statistics
+
+Before plotting, let's take a look at summary numbers. This helps ensure that the plots are being correctly rendered.
+
+There are a total of `r nrow(data_df)` observations, for `r ncol(data_df)` sites. 
+
+
+```{r summary}
+summary(data_df)
+```
+
+Sunriver (SR) has significantly more observations than the other sites, with the second highest Dilman Meadows (DM) containing only half the measurements. This will influence plots based upon distributions.  
+
+## Plotting
+
+The data is currently in the so-called _wide_ format, where each value of the site location variable is an independent column. Let's tranform it to the _long_ format, where each observation is contained in a single column, with another single column denoting site location.
+
+In addition, there are many `NA` (NULL) values, due to the difference in number of observations across sites. These are easily removed with `na.omit`. 
+
+```{r reshape}
+library(tidyr)
+data_long = na.omit(gather(data_df, site_location, size, 
+                           CR:LSA, factor_key=TRUE))
+head(data_long)
+```
+
+There are now `r nrow(data_long)` unique observations for _all_ sites.
+
+### Violin
+
+Let's take an initial stab at producing a Violin plot. 
+
+```{r violin_1}
+library(ggplot2)
+p <- ggplot(data_long, aes(x=site_location, y=size)) + 
+#   geom_violin(scale='count')
+  geom_violin()
+p + geom_boxplot(width=0.1)
+
+```
+
