@@ -1,0 +1,145 @@
+---
+title: "Giant Frogs in Bend"
+author: 
+  - "Corey Dow-Hygelund,  Mozilla"
+  - "Tlell Wolf, Bend Science Station"
+  - "Jay Bowerman, Sunriver Nature Center"
+date: "1/1/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Loading
+
+The dataset is contained in an Excel (.xlsx) spreadsheet, located in the subdirectory `data`. The raw statistics are on the sheet _All Female raw statistics_. Lets load it in and take a quick look.
+```{r data_load, message=FALSE}
+library(readxl)
+
+file_path <- 'data/Female size statistics.2.xlsx'
+data_df <- read_excel(file_path, range=(cell_cols('B:G')), 
+                      sheet="All Females raw statistics")
+
+head(data_df)
+```
+
+## Summary statistics
+
+Before plotting, let's take a look at summary numbers. This helps ensure that the plots are being correctly rendered.
+
+There are a total of `r nrow(data_df)` observations, for `r ncol(data_df)` sites. 
+
+
+```{r summary}
+summary(data_df)
+```
+
+Sunriver (SR) has significantly more observations than the other sites, with the second highest Dilman Meadows (DM) containing only half the measurements. This will influence plots based upon distributions.  
+
+## Plotting
+
+The data is currently in the so-called _wide_ format, where each value of the site location variable is an independent column. Let's tranform it to the _long_ format, where each observation is contained in a single column, with another single column denoting site location.
+
+In addition, there are many `NA` (NULL) values, due to the difference in number of observations across sites. These are easily removed with `na.omit`. 
+
+```{r reshape}
+library(tidyr)
+data_long = na.omit(gather(data_df, site_location, size, 
+                           CR:LSA, factor_key=FALSE))
+head(data_long)
+```
+
+There are now `r nrow(data_long)` unique observations for _all_ sites.
+
+<<<<<<< HEAD
+### Violin/Boxplot
+=======
+### Violing/Boxplot
+>>>>>>> a60988acdba9f41701c930b8a928523f5b2f4e44
+
+```{r violin_1}
+library(ggplot2)
+p <- ggplot(data_long, aes(x=site_location, y=size)) +
+  labs(x = 'Location', y = 'Length (mm)') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+#   geom_violin(scale='count')
+p +  
+  geom_violin(draw_quantiles = c(0.5)) 
+
+```
+
+Standard boxplot 
+```{r boxplot}
+p + geom_boxplot()
+```
+
+
+```{r boxplot_violin}
+p +  
+  geom_violin() +
+  geom_boxplot(width=0.1)
+  
+```
+
+Producing the violin plot, where the violin area is scaled by the number of counts
+
+```{r violin_2}
+p +  
+  geom_violin(scale='count')
+
+```
+
+### Ridge
+
+Rather than representing the di
+```{r ridge_plot}
+library(ggridges)
+p <- ggplot(data_long, aes(x=size, y=site_location)) + 
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+p + geom_density_ridges()
+```
+
+Reducing the overlap between the histograms to zero.
+
+```{r}
+p + geom_density_ridges(scale = 1)
+```
+
+Adding in quantiles
+
+```{r}
+p + geom_density_ridges(scale = 1, quantile_lines=TRUE, quantiles=2)
+```
+
+#### Adding Color
+Color representing probability of distribution
+
+```{r}
+ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) + 
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail probability", direction = -1) +
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+```
+
+Color representing length 
+```{r}
+ggplot(data_long, aes(x=size, y=site_location, fill=..x..)) + 
+  geom_density_ridges_gradient() +
+  scale_fill_viridis_c(name = "Temp. [F]", option = "C")
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+  
+```
+
