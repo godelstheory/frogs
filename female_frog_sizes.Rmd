@@ -38,8 +38,7 @@ summary(data_df)
 
 Sunriver (SR) has significantly more observations than the other sites, with the second highest Dilman Meadows (DM) containing only half the measurements. This will influence plots based upon distributions.  
 
-## Plotting
-
+## Data Reshaping
 The data is currently in the so-called _wide_ format, where each value of the site location variable is an independent column. Let's tranform it to the _long_ format, where each observation is contained in a single column, with another single column denoting site location.
 
 In addition, there are many `NA` (NULL) values, due to the difference in number of observations across sites. These are easily removed with `na.omit`. 
@@ -53,6 +52,13 @@ head(data_long)
 
 There are now `r nrow(data_long)` unique observations for _all_ sites.
 
+## Plotting
+In the following violin/boxplot, the order from left-right is either determined by a.) 1st observation/row in dataset, b.) the factor order. The desire is for the plot order to reflect the median frog size for readability. Therefore, we set the factor order accordingly.
+
+```{r}
+sites <- names(sort(apply(data_df, 2, mean, na.rm=TRUE)))
+data_long$site_location <- factor(data_long$site_location, sites)
+```
 
 ### Violin/Boxplot
 
