@@ -53,11 +53,8 @@ head(data_long)
 
 There are now `r nrow(data_long)` unique observations for _all_ sites.
 
-<<<<<<< HEAD
+
 ### Violin/Boxplot
-=======
-### Violing/Boxplot
->>>>>>> a60988acdba9f41701c930b8a928523f5b2f4e44
 
 ```{r violin_1}
 library(ggplot2)
@@ -95,9 +92,24 @@ p +
 
 ### Ridge
 
-Rather than representing the di
-```{r ridge_plot}
+The ridge plot consists of the histograms being plotted one above the other. This enables direct comparison, in a manner that is intuitive.  
+
+Histograms without converting to densities
+
+```{r, warning=FALSE, message=FALSE}
 library(ggridges)
+ggplot(data_long, aes(x=size, y=site_location, height = ..density..)) + 
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold")) +
+  geom_density_ridges(stat = "binline", bins = 20, scale = 0.95, draw_baseline = FALSE)
+
+```
+
+
+Converting to densities, which is easier on the eye.
+```{r ridge_plot, warning=FALSE}
 p <- ggplot(data_long, aes(x=size, y=site_location)) + 
   labs(x = 'Length (mm)', y = 'Location') +
   theme_classic() + 
@@ -108,20 +120,20 @@ p + geom_density_ridges()
 
 Reducing the overlap between the histograms to zero.
 
-```{r}
+```{r, warning=FALSE}
 p + geom_density_ridges(scale = 1)
 ```
 
 Adding in quantiles
 
-```{r}
+```{r, warning=FALSE}
 p + geom_density_ridges(scale = 1, quantile_lines=TRUE, quantiles=2)
 ```
 
 #### Adding Color
-Color representing probability of distribution
+Color representing probability of distribution. Dark represents the median (i.e. lower/upper 50%). Yellow represents the extreme tails. e.g. 0.1 represents 10% of the lower/upper distribution are contained. 
 
-```{r}
+```{r, warning=FALSE}
 ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) + 
   stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE) +
   scale_fill_viridis_c(name = "Tail probability", direction = -1) +
@@ -132,14 +144,15 @@ ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) +
 ```
 
 Color representing length 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 ggplot(data_long, aes(x=size, y=site_location, fill=..x..)) + 
   geom_density_ridges_gradient() +
-  scale_fill_viridis_c(name = "Temp. [F]", option = "C")
+  scale_fill_viridis_c(name = "Length (mm)", option = "C")
   labs(x = 'Length (mm)', y = 'Location') +
   theme_classic() + 
   theme(axis.text=element_text(size=16),
         axis.title=element_text(size=16,face="bold"))
-  
+ 
 ```
+
 
