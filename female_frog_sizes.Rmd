@@ -56,35 +56,115 @@ There are now `r nrow(data_long)` unique observations for _all_ sites.
 In the following violin/boxplot, the order from left-right is either determined by a.) 1st observation/row in dataset, b.) the factor order. The desire is for the plot order to reflect the median frog size for readability. Therefore, we set the factor order accordingly.
 
 ```{r}
-sites <- names(sort(apply(data_df, 2, mean, na.rm=TRUE)))
-data_long$site_location <- factor(data_long$site_location, sites)
+site_medians <- sort(apply(data_df, 2, median, na.rm=TRUE))
+site_median_names <- names(site_medians)
+site_max <- sort(apply(data_df, 2, max, na.rm=TRUE))
+data_long$site_location <- factor(data_long$site_location, names(site_medians))
+```
+
+Also we retrieve the number of observation as a character vector to include in the plots
+```{r}
+num_obs <- as.character(table(data_long$site_location))
+```
+
+Finally we add an additional factor column for plotting counts in ridge plots: bona-fide hack.
+
+```{r}
+library(plyr)
+data_long$site_loc_1 <- mapvalues(data_long$site_location, from=site_median_names, 
+                                  paste(paste(levels(data_long$site_location), num_obs, sep='\n('), ')', sep =''))
+data_long$site_loc_2 <- mapvalues(data_long$site_location, from=site_median_names, 
+                                  paste(paste(levels(data_long$site_location), num_obs, sep=' ('), ')', sep =''))
+
+```
+
+
+### Optimal
+
+#### Violin
+If color isn't available, the violin/boxplot
+
+```{r}
+library(ggplot2)
+
+violin_count_yloc <- site_max + c(5, 4, 10, 4, -4, 4) # Custom pretty offset
+
+p <- ggplot(data_long, aes(x=site_location, y=size)) +
+  labs(x = 'Location', y = 'Length (mm)') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold")) +  
+  geom_violin() +
+  geom_boxplot(width=0.1) +
+  geom_text(data=data.frame(), aes(x=site_median_names, y=violin_count_yloc, label=num_obs))
+
+p
+```
+
+#### Ridge
+If we are fortunate enough for color, the ridge plot is a great choice.
+
+The following has the counts below the labels
+```{r, warning=FALSE, message=FALSE}
+library(ggridges)
+
+ggplot(data_long, aes(x=size, y=site_loc_1, fill=0.5 - abs(0.5-..ecdf..))) + 
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE, to=max(data_long$size),
+                      quantiles=c(0.05, 0.95), quantile_lines=TRUE) +
+  scale_fill_viridis_c(name = "Tail probability", direction = -1, option = 'C') +
+  # geom_text(x=site_median_names, y=site_location, label=num_obs) +
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold")) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 5))
+```
+
+
+The following has the counts inline with the labels
+```{r, warning=FALSE, message=FALSE}
+
+ggplot(data_long, aes(x=size, y=site_loc_2, fill=0.5 - abs(0.5-..ecdf..))) + 
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE, to=max(data_long$size),
+                      quantiles=c(0.05, 0.95), quantile_lines=TRUE) +
+  scale_fill_viridis_c(name = "Tail probability", direction = -1, option = 'C') +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold")) 
 ```
 
 ### Violin/Boxplot
 
 ```{r violin_1}
 library(ggplot2)
+
+violin_count_yloc <- site_max + c(5, 4, 10, 4, -4, 4) # Custom pretty offset
+
 p <- ggplot(data_long, aes(x=site_location, y=size)) +
   labs(x = 'Location', y = 'Length (mm)') +
   theme_classic() + 
   theme(axis.text=element_text(size=16),
         axis.title=element_text(size=16,face="bold"))
 #   geom_violin(scale='count')
-p +  
-  geom_violin(draw_quantiles = c(0.5)) 
+p +  geom_violin(draw_quantiles = c(0.5)) +
+  geom_text(data=data.frame(), aes(x=site_median_names, y=violin_count_yloc, label=num_obs))
 
 ```
 
 Standard boxplot 
 ```{r boxplot}
-p + geom_boxplot()
+p + geom_boxplot() +
+  geom_text(data=data.frame(), aes(x=site_median_names, y=violin_count_yloc, label=num_obs))
 ```
 
 
 ```{r boxplot_violin}
 p +  
   geom_violin() +
-  geom_boxplot(width=0.1)
+  geom_boxplot(width=0.1) +
+  geom_text(data=data.frame(), aes(x=site_median_names, y=violin_count_yloc, label=num_obs))
   
 ```
 
@@ -92,7 +172,8 @@ Producing the violin plot, where the violin area is scaled by the number of coun
 
 ```{r violin_2}
 p +  
-  geom_violin(scale='count')
+  geom_violin(scale='count') +
+  geom_text(data=data.frame(), aes(x=site_median_names, y=violin_count_yloc, label=num_obs))
 
 ```
 
@@ -103,7 +184,6 @@ The ridge plot consists of the histograms being plotted one above the other. Thi
 Histograms without converting to densities
 
 ```{r, warning=FALSE, message=FALSE}
-library(ggridges)
 ggplot(data_long, aes(x=size, y=site_location, height = ..density..)) + 
   labs(x = 'Length (mm)', y = 'Location') +
   theme_classic() + 
@@ -121,19 +201,28 @@ p <- ggplot(data_long, aes(x=size, y=site_location)) +
   theme_classic() + 
   theme(axis.text=element_text(size=16),
         axis.title=element_text(size=16,face="bold"))
-p + geom_density_ridges()
+p + geom_density_ridges(to=max(data_long$size))
+```
+
+```{r, warning=FALSE}
+p <- ggplot(data_long, aes(x=size, y=site_location)) + 
+  labs(x = 'Length (mm)', y = 'Location') +
+  theme_classic() + 
+  theme(axis.text=element_text(size=16),
+        axis.title=element_text(size=16,face="bold"))
+p + geom_density_ridges(to=max(data_long$size))
 ```
 
 Reducing the overlap between the histograms to zero.
 
 ```{r, warning=FALSE}
-p + geom_density_ridges(scale = 1)
+p + geom_density_ridges(scale = 1, to=max(data_long$size))
 ```
 
 Adding in quantiles
 
 ```{r, warning=FALSE}
-p + geom_density_ridges(scale = 1, quantile_lines=TRUE, quantiles=2)
+p + geom_density_ridges(scale = 1, quantile_lines=TRUE, quantiles=2, to=max(data_long$size))
 ```
 
 #### Adding Color
@@ -141,7 +230,7 @@ Color representing probability of distribution. Dark represents the median (i.e.
 
 ```{r, warning=FALSE}
 ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) + 
-  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE) +
+  stat_density_ridges(geom = "density_ridges_gradient", calc_ecdf = TRUE, to=max(data_long$size)) +
   scale_fill_viridis_c(name = "Tail probability", direction = -1) +
   labs(x = 'Length (mm)', y = 'Location') +
   theme_classic() + 
@@ -152,7 +241,7 @@ ggplot(data_long, aes(x=size, y=site_location, fill=0.5 - abs(0.5-..ecdf..))) +
 Color representing length 
 ```{r, warning=FALSE, message=FALSE}
 ggplot(data_long, aes(x=size, y=site_location, fill=..x..)) + 
-  geom_density_ridges_gradient() +
+  geom_density_ridges_gradient(to=max(data_long$size)) +
   scale_fill_viridis_c(name = "Length (mm)", option = "C")
   labs(x = 'Length (mm)', y = 'Location') +
   theme_classic() + 
